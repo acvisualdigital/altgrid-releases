@@ -1,0 +1,40 @@
+name: Import verified AltGrid release packages
+on:
+  workflow_dispatch:
+    inputs:
+      source_secret:
+        description: Temporary read-only archive URL
+        required: true
+        type: choice
+        options:
+          - ALTGRID_IMPORT_LINUX_X64_201
+          - ALTGRID_IMPORT_LINUX_ARM64_201
+          - ALTGRID_IMPORT_MACOS_201
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Transfer verified build archive
+        env:
+          SOURCE_URL: ${{ secrets[inputs.source_secret] }}
+        run: |
+          set -eu
+          test -n "$SOURCE_URL"
+          curl --fail --silent --show-error --proto '=https' --retry 3 --max-time 600 "$SOURCE_URL" -o "$RUNNER_TEMP/build-artifact.zip"
+          unzip -tq "$RUNNER_TEMP/build-artifact.zip"
+          unzip -Z1 "$RUNNER_TEMP/build-artifact.zip" | while IFS= read -r name; do
+            echo "$name" | grep -Eq '^AltGrid-(linux-(x64|arm64)-2\.0\.1\.(deb|AppImage)|mac-(x64|arm64)-2\.0\.1\.(dmg|zip))$'
+          done
+          mkdir "$RUNNER_TEMP/packages"
+          unzip -q "$RUNNER_TEMP/build-artifact.zip" -d "$RUNNER_TEMP/packages"
+          sha256sum "$RUNNER_TEMP/packages/"*
+      - name: Upload packages to existing draft only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          test "$(gh release view v2.0.1 --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')" = true
+          gh release upload v2.0.1 "$RUNNER_TEMP/packages/"* --repo "$GITHUB_REPOSITORY"
