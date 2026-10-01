@@ -27,7 +27,7 @@ jobs:
           set -eu
           test -n "$SOURCE_URL"
           case "$SOURCE_NAME" in
-            ALTGRID_IMPORT_WINDOWS_202) expected='^(AltGrid-2\.0\.2-win-x64-full\.nupkg|AltGrid-win-x64-(Setup\.exe|Portable\.zip)|assets\.win-x64\.json|RELEASES-win-x64|releases\.win-x64\.json|AltGrid-Store-2\.0\.2\.appx)$' ;;
+            ALTGRID_IMPORT_WINDOWS_202) expected='^(release/velopack/(AltGrid-2\.0\.2-win-x64-full\.nupkg|AltGrid-win-x64-(Setup\.exe|Portable\.zip)|assets\.win-x64\.json|RELEASES-win-x64|releases\.win-x64\.json)|store-release/AltGrid-Store-2\.0\.2\.appx)$' ;;
             ALTGRID_IMPORT_ANDROID_202) expected='^AltGrid-Android-2\.0\.2\.apk$' ;;
             ALTGRID_IMPORT_LINUX_X64_202) expected='^AltGrid-linux-x64-2\.0\.2\.(deb|AppImage)$' ;;
             ALTGRID_IMPORT_LINUX_ARM64_202) expected='^AltGrid-linux-arm64-2\.0\.2\.(deb|AppImage)$' ;;
@@ -41,7 +41,7 @@ jobs:
             echo "$name" | grep -Eq "$expected"
           done
           mkdir "$RUNNER_TEMP/packages"
-          unzip -q "$RUNNER_TEMP/build-artifact.zip" -d "$RUNNER_TEMP/packages"
+          unzip -jq "$RUNNER_TEMP/build-artifact.zip" -d "$RUNNER_TEMP/packages"
           if [ "$SOURCE_NAME" = ALTGRID_IMPORT_ANDROID_202 ]; then
             cp "$RUNNER_TEMP/packages/AltGrid-Android-2.0.2.apk" "$RUNNER_TEMP/packages/AltGrid-Android-latest.apk"
           fi
