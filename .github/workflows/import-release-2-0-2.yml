@@ -41,6 +41,9 @@ jobs:
           done
           mkdir "$RUNNER_TEMP/packages"
           unzip -q "$RUNNER_TEMP/build-artifact.zip" -d "$RUNNER_TEMP/packages"
+          if [ "$SOURCE_NAME" = ALTGRID_IMPORT_ANDROID_202 ]; then
+            cp "$RUNNER_TEMP/packages/AltGrid-Android-2.0.2.apk" "$RUNNER_TEMP/packages/AltGrid-Android-latest.apk"
+          fi
           sha256sum "$RUNNER_TEMP/packages/"*
       - name: Upload to the existing 2.0.2 draft
         env:
