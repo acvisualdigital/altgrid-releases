@@ -1,0 +1,51 @@
+name: Import verified AltGrid 2.0.2 packages
+on:
+  workflow_dispatch:
+    inputs:
+      source_secret:
+        description: Temporary read-only artifact URL
+        required: true
+        type: choice
+        options:
+          - ALTGRID_IMPORT_WINDOWS_202
+          - ALTGRID_IMPORT_ANDROID_202
+          - ALTGRID_IMPORT_LINUX_X64_202
+          - ALTGRID_IMPORT_LINUX_ARM64_202
+          - ALTGRID_IMPORT_MACOS_202
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Transfer and verify package archive
+        env:
+          SOURCE_URL: ${{ secrets[inputs.source_secret] }}
+          SOURCE_NAME: ${{ inputs.source_secret }}
+        run: |
+          set -eu
+          test -n "$SOURCE_URL"
+          case "$SOURCE_NAME" in
+            ALTGRID_IMPORT_WINDOWS_202) expected='^(AltGrid-2\.0\.2-win-x64-full\.nupkg|AltGrid-win-x64-(Setup\.exe|Portable\.zip)|assets\.win-x64\.json|RELEASES-win-x64|releases\.win-x64\.json|AltGrid-Store-2\.0\.2\.appx)$' ;;
+            ALTGRID_IMPORT_ANDROID_202) expected='^AltGrid-Android-2\.0\.2\.apk$' ;;
+            ALTGRID_IMPORT_LINUX_X64_202) expected='^AltGrid-linux-x64-2\.0\.2\.(deb|AppImage)$' ;;
+            ALTGRID_IMPORT_LINUX_ARM64_202) expected='^AltGrid-linux-arm64-2\.0\.2\.(deb|AppImage)$' ;;
+            ALTGRID_IMPORT_MACOS_202) expected='^AltGrid-mac-(x64|arm64)-2\.0\.2\.(dmg|zip)$' ;;
+            *) exit 1 ;;
+          esac
+          curl --fail --silent --show-error --proto '=https' --retry 3 --max-time 900 "$SOURCE_URL" -o "$RUNNER_TEMP/build-artifact.zip"
+          unzip -tq "$RUNNER_TEMP/build-artifact.zip"
+          unzip -Z1 "$RUNNER_TEMP/build-artifact.zip" | while IFS= read -r name; do
+            echo "$name" | grep -Eq "$expected"
+          done
+          mkdir "$RUNNER_TEMP/packages"
+          unzip -q "$RUNNER_TEMP/build-artifact.zip" -d "$RUNNER_TEMP/packages"
+          sha256sum "$RUNNER_TEMP/packages/"*
+      - name: Upload to the existing 2.0.2 draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          test "$(gh release view v2.0.2 --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')" = true
+          gh release upload v2.0.2 "$RUNNER_TEMP/packages/"* --repo "$GITHUB_REPOSITORY"
