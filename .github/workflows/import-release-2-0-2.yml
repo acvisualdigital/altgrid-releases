@@ -36,6 +36,7 @@ jobs:
           esac
           curl --fail --silent --show-error --proto '=https' --retry 3 --max-time 900 "$SOURCE_URL" -o "$RUNNER_TEMP/build-artifact.zip"
           unzip -tq "$RUNNER_TEMP/build-artifact.zip"
+          unzip -Z1 "$RUNNER_TEMP/build-artifact.zip"
           unzip -Z1 "$RUNNER_TEMP/build-artifact.zip" | while IFS= read -r name; do
             echo "$name" | grep -Eq "$expected"
           done
